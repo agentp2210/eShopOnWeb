@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eshopwebmvc
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: eshopwebmvc
+  template:
+    metadata:
+      labels:
+        app: eshopwebmvc
+    spec:
+      containers:
+      - name: eshopwebmvc
+        image: myaksclusteracr73043.azurecr.io/eshopwebmvc:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Docker"
+        - name: ASPNETCORE_URLS
+          value: "http://+:80"
+
+---
+
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: eshopwebmvc
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: eshopwebmvc
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 50
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: eshopwebmvc
+spec:
+  selector:
+    app: eshopwebmvc
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-eshopwebmvc
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "guestbook.anhalan.nl"
+    http:
+      paths:
+      - pathType: Prefix
+        path: "/"
+        backend:
+          service:
+            name: eshopwebmvc
+            port:
+              number: 80
